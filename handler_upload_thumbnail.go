@@ -63,14 +63,15 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	}
 
 	// convert image byte data to base64 string to store in sqlite text column and not in memory
-	textData := base64.StdEncoding.EncodeToString(data)
+	base64Encoded := base64.StdEncoding.EncodeToString(data)
 
-	dataURL := fmt.Sprintf("data:%s;base64,%s", mediaType, textData)
-	video.ThumbnailURL = &dataURL
+	base64DataURL := fmt.Sprintf("data:%s;base64,%s", mediaType, base64Encoded)
+	video.ThumbnailURL = &base64DataURL
 
 	err = cfg.db.UpdateVideo(video)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error updating video", err)
+		return
 	}
 
 	respondWithJSON(w, http.StatusOK, video)
