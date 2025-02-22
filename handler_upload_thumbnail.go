@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -61,19 +62,15 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	videoThumbnails[videoID] = thumbnail{
-		data:      data,
-		mediaType: mediaType,
-	}
+	// convert image byte data to base64 string to store in sqlite text column and not in memory
+	textData := base64.StdEncoding.EncodeToString(data)
 
-	url := fmt.Sprintf("http://localhost:%s/api/thumbnails/%s", cfg.port, videoID)
-	video.ThumbnailURL = &url
+	dataURL := fmt.Sprintf("data:%s;base64,%s", mediaType, textData)
+	video.ThumbnailURL = &dataURL
 
 	err = cfg.db.UpdateVideo(video)
 	if err != nil {
-		delete(videoThumbnails, videoID)
-		respondWithError(w, http.StatusInternalServerError, "Couldn't update video", err)
-		return
+		respondWithError(w, http.StatusInternalServerError, "Error updating video", err)
 	}
 
 	respondWithJSON(w, http.StatusOK, video)
